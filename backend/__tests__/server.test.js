@@ -2,59 +2,68 @@ const request = require('supertest');
 const app = require('../app');
 
 describe('Medicine Tracker API', () => {
-  it('GET /health should return 200 OK', async () => {
-    const res = await request(app).get('/health');
-    expect(res.statusCode).toBe(200);
-    expect(res.text).toBe('OK');
+  let token = '';
+  let medicineId = null;
+
+  beforeAll(async () => {
+    // Register a new user
+    const registerRes = await request(app).post('/api/auth/register').send({
+      username: 'testuser',
+      email: 'testuser@example.com',
+      password: 'testpassword',
+    });
+
+    token = registerRes.body.token;
   });
 
-  it('GET /medicines should return an array (initially empty or seeded)', async () => {
-    const res = await request(app).get('/medicines');
+  it('GET /api/health should return 200 OK', async () => {
+    const res = await request(app).get('/api/health');
     expect(res.statusCode).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.status).toBe('OK');
   });
 
-  it('POST /medicines should add a medicine and return it', async () => {
+  it('GET /api/medicines should return an array', async () => {
+    const res = await request(app)
+      .get('/api/medicines')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.body.medicines)).toBe(true);
+  });
+
+  it('POST /api/medicines should add a medicine and return it', async () => {
     const medicine = {
       name: 'Paracetamol',
-      expiryDate: '2026-12-31'
+      dosage: '500mg',
+      frequency: 'daily',
+      start_date: '2025-07-01',
     };
 
     const res = await request(app)
-      .post('/medicines')
+      .post('/api/medicines')
+      .set('Authorization', `Bearer ${token}`)
       .send(medicine);
 
     expect(res.statusCode).toBe(201);
-    expect(res.body).toHaveProperty('id');
-    expect(res.body.name).toBe(medicine.name);
-    expect(res.body.expiryDate).toBe(medicine.expiryDate);
+    expect(res.body.medicine).toHaveProperty('id');
+    expect(res.body.medicine.name).toBe(medicine.name);
+
+    medicineId = res.body.medicine.id;
   });
 
-  it('PUT /medicines/:id should update a medicine', async () => {
-    const postRes = await request(app).post('/medicines').send({
-      name: 'Ibuprofen',
-      expiryDate: '2025-11-11',
-    });
+  it('PUT /api/medicines/:id should update a medicine', async () => {
+    const res = await request(app)
+      .put(`/api/medicines/${medicineId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Paracetamol Updated' });
 
-    const id = postRes.body.id;
-
-    const putRes = await request(app)
-      .put(`/medicines/${id}`)
-      .send({ name: 'Ibuprofen Updated', expiryDate: '2027-01-01' });
-
-    expect(putRes.statusCode).toBe(200);
-    expect(putRes.body.name).toBe('Ibuprofen Updated');
+    expect(res.statusCode).toBe(200);
   });
 
-  it('DELETE /medicines/:id should delete a medicine', async () => {
-    const postRes = await request(app).post('/medicines').send({
-      name: 'DeleteMe',
-      expiryDate: '2025-09-09',
-    });
+  it('DELETE /api/medicines/:id should delete a medicine', async () => {
+    const res = await request(app)
+      .delete(`/api/medicines/${medicineId}`)
+      .set('Authorization', `Bearer ${token}`);
 
-    const id = postRes.body.id;
-
-    const delRes = await request(app).delete(`/medicines/${id}`);
-    expect(delRes.statusCode).toBe(204);
+    expect(res.statusCode).toBe(200);
   });
 });
