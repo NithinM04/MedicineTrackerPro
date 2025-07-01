@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('../app');
+const app = require('../server'); // ✅ IMPORTANT: Load the actual app with middleware/routes
 
 describe('Medicine Tracker API', () => {
   let token = '';
@@ -14,6 +14,7 @@ describe('Medicine Tracker API', () => {
     });
 
     token = registerRes.body.token;
+    expect(token).toBeDefined(); // Ensure token is received
   });
 
   it('GET /api/health should return 200 OK', async () => {
