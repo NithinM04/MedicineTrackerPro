@@ -3,8 +3,6 @@ const config = {
   collectCoverage: true,
   coverageDirectory: "coverage",
   coverageProvider: "v8",
-
-  // ✅ Add this line:
   collectCoverageFrom: [
     "**/*.js",
     "!**/node_modules/**",
